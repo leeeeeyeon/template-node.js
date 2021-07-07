@@ -34,6 +34,8 @@ var db = require('./lib/db');
 var topic = require('./lib/topic.js');
 var author = require('./lib/author.js');
 
+const PORT = process.env.PORT;
+
 var app = http.createServer(function(request,response){
   var _url = request.url;
   var queryData = url.parse(_url, true).query;
@@ -70,4 +72,5 @@ var app = http.createServer(function(request,response){
       response.end('Not found');
     }
 });
-app.listen(3000);
+
+app.listen(PORT);
