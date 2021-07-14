@@ -6,9 +6,14 @@ const sanitizeHtml = require('sanitize-html');
 // 파일 분리
 const db = require('../lib/db.js');
 const template = require('../lib/template.js');
+const auth = require('../lib/auth.js');
 
 // 게시글 생성
 router.get('/create', function(request, response){
+  if(!auth.isLogin(request, response)){
+    response.redirect('/');
+    return false;
+  }
   db.query(`SELECT * FROM topic`, function(error, topics){
     db.query(`SELECT * FROM author`, function(error2, authors){
 
@@ -29,7 +34,8 @@ router.get('/create', function(request, response){
           </p>
         </form>
       `,
-        ``
+      ``,
+      auth.statusUI(request, response)
       );
 
       response.send(html);
@@ -38,6 +44,10 @@ router.get('/create', function(request, response){
 });
 
 router.post('/create_process', function(request, response){
+    if(!auth.isLogin(request, response)){
+        response.redirect('/');
+        return false;
+    }
     var post = request.body;
     var title = post.title;
     var description = post.description;
@@ -56,6 +66,10 @@ router.post('/create_process', function(request, response){
 
 // 게시글 수정
 router.get('/update/:pageId', function(request, response){
+  if(!auth.isLogin(request, response)){
+    response.redirect('/');
+    return false;
+  }
   db.query(`SELECT * FROM topic`, function(error, topics){
     if(error) throw error;
     db.query(`SELECT * FROM topic WHERE id=?`, [request.params.pageId], function(error2, topic){
@@ -79,7 +93,8 @@ router.get('/update/:pageId', function(request, response){
             </p>
           </form>
           `,
-          `<a href="/create">create</a> <a href="/update/${topic[0].id}">update</a>`
+          `<a href="/create">create</a> <a href="/update/${topic[0].id}">update</a>`,
+          auth.statusUI(request, response)
         );
         response.send(html);
       });
@@ -88,6 +103,10 @@ router.get('/update/:pageId', function(request, response){
 });
 
 router.post('/update_process', function(request, response){
+  if(!auth.isLogin(request, response)){
+    response.redirect('/');
+    return false;
+  }
     var post = request.body;
     var id = post.id;
     var title = post.title;
@@ -104,6 +123,10 @@ router.post('/update_process', function(request, response){
 
 // 게시글 삭제
 router.post('/delete_process', function(request,response){
+    if(!auth.isLogin(request, response)){
+      response.redirect('/');
+      return false;
+    }
     var post = request.body;
     var id = post.id;
     db.query(`DELETE FROM topic WHERE id=?`, [id], function(error, result){
@@ -135,7 +158,8 @@ router.get('/:pageId', function(request, response){
             <input type="hidden" name="id" value="${request.params.pageId}">
             <input type="submit" value="delete">
           </form>
-          `
+          `,
+          auth.statusUI(request, response)
         );
 
         response.send(html);

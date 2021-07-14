@@ -7,6 +7,7 @@ const sanitizeHtml = require('sanitize-html');
 // 파일 분리
 const db = require('../lib/db');
 const template = require('../lib/template.js');
+const auth = require('../lib/auth.js');
 
 // 저자 목록
 router.get('/', function(request, response){
@@ -37,7 +38,8 @@ router.get('/', function(request, response){
                     <p>
                 </form>
                 `,
-                ``
+                ``,
+                auth.statusUI(request, response)
             );
             response.send(html);
         });
@@ -46,6 +48,10 @@ router.get('/', function(request, response){
 
 // 저자 생성
 router.post('/create_process', function(request, response){
+    if(!auth.isLogin(request, response)){
+        response.redirect('/author');
+        return false;
+      }
     var post = request.body;
     var name = post.name;
     
@@ -62,6 +68,10 @@ router.post('/create_process', function(request, response){
 
 // 저자 수정
 router.get('/update/:pageId', function(request, response){
+    if(!auth.isLogin(request, response)){
+        response.redirect('/author');
+        return false;
+    }
     db.query(`SELECT * FROM topic`, function(error, topics){
         if(error) throw error;
         db.query(`SELECT * FROM author`, function(error2, authors){
@@ -94,7 +104,8 @@ router.get('/update/:pageId', function(request, response){
                         <p>
                     </form>
                     `,
-                    ``
+                    ``,
+                    auth.statusUI(request, response)
                 );
                 response.send(html);
             });
@@ -103,6 +114,10 @@ router.get('/update/:pageId', function(request, response){
 });
 
 router.post('/update_process', function(request, response){
+    if(!auth.isLogin(request, response)){
+        response.redirect('/author');
+        return false;
+    }
     var post = request.body;
     var name = post.name;
     var id = post.id;
@@ -119,6 +134,10 @@ router.post('/update_process', function(request, response){
 
 // 저자 삭제
 router.post('/delete_process', function(request, response){
+    if(!auth.isLogin(request, response)){
+        response.redirect('/author');
+        return false;
+    }
     var post = request.body;
     var id = post.id;
     db.query(`DELETE FROM topic WHERE author_id=?`,
