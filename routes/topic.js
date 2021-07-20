@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 const sanitizeHtml = require('sanitize-html');
+const shortid = require('shortid');
 
 // 파일 분리
 const db = require('../lib/db.js');
@@ -45,14 +46,20 @@ router.post('/create_process', function(request, response){
     var post = request.body;
     var title = post.title;
     var description = post.description;
+    var id = shortid.generate();
     
+    var topic = {
+      id: id,
+      title: title,
+      description: description,
+      user_id: request.user.count
+    };
     db.query(`
-      INSERT INTO topic (title, description, user_id)
-        VALUES(?, ?, ?)`,
-        [title, description, request.user.count],
+      INSERT INTO topic SET ?`,
+        topic,
         function(error, result){
           if(error) throw error;
-          response.redirect(`/topic/${result.insertId}`);
+          response.redirect(`/topic/${id}`);
         }
         );
 });
