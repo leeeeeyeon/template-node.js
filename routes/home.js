@@ -8,7 +8,7 @@ const auth = require('../lib/auth.js');
 
 // 메인 화면
 router.get('/', function(request, response){
-    console.log('/', request.user);
+    // console.log('/', request.user);
     db.query(`SELECT * FROM topic`, function(error, topics){
       if(error) throw error;
 

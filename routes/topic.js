@@ -15,31 +15,25 @@ router.get('/create', function(request, response){
     return false;
   }
   db.query(`SELECT * FROM topic`, function(error, topics){
-    db.query(`SELECT * FROM author`, function(error2, authors){
+    var title = 'Create';
+    var list = template.list(topics);
+    var html = template.HTML(sanitizeHtml(title), list,
+      `
+      <form action="/topic/create_process" method="post">
+        <p><input type="text" name="title" placeholder="title"></p>
+        <p>
+          <textarea name="description" placeholder="description"></textarea>
+        </p>
+        <p>
+          <input type="submit">
+        </p>
+      </form>
+    `,
+    ``,
+    auth.statusUI(request, response)
+    );
 
-      var title = 'Create';
-      var list = template.list(topics);
-      var html = template.HTML(sanitizeHtml(title), list,
-        `
-        <form action="/topic/create_process" method="post">
-          <p><input type="text" name="title" placeholder="title"></p>
-          <p>
-            <textarea name="description" placeholder="description"></textarea>
-          </p>
-          <p>
-            ${template.authorSelect(authors)}
-          </p>
-          <p>
-            <input type="submit">
-          </p>
-        </form>
-      `,
-      ``,
-      auth.statusUI(request, response)
-      );
-
-      response.send(html);
-    });
+    response.send(html);
   });
 });
 
@@ -51,12 +45,11 @@ router.post('/create_process', function(request, response){
     var post = request.body;
     var title = post.title;
     var description = post.description;
-    var author = post.author;
     
     db.query(`
-      INSERT INTO topic (title, description, created, author_id)
+      INSERT INTO topic (title, description, created, user_id)
         VALUES(?, ?, NOW(), ?)`,
-        [title, description, author],
+        [title, description, request.user.count],
         function(error, result){
           if(error) throw error;
           response.redirect(`/topic/${result.insertId}`);
@@ -74,30 +67,24 @@ router.get('/update/:pageId', function(request, response){
     if(error) throw error;
     db.query(`SELECT * FROM topic WHERE id=?`, [request.params.pageId], function(error2, topic){
       if(error2) throw error2;
-      db.query(`SELECT * FROM author`, function(error3, authors){
-        if(error3) throw error3;
-        var list = template.list(topics);
-        var html = template.HTML(sanitizeHtml(topic[0].title), list,
-          `
-          <form action="/topic/update_process" method="post">
-            <input type="hidden" name="id" value="${topic[0].id}">
-            <p><input type="text" name="title" placeholder="title" value="${sanitizeHtml(topic[0].title)}"></p>
-            <p>
-              <textarea name="description" placeholder="description">${sanitizeHtml(topic[0].description)}</textarea>
-            </p>
-            <p>
-              ${template.authorSelect(authors, topic[0].author_id)}
-            </p>
-            <p>
-              <input type="submit">
-            </p>
-          </form>
-          `,
-          `<a href="/create">create</a> <a href="/update/${topic[0].id}">update</a>`,
-          auth.statusUI(request, response)
-        );
-        response.send(html);
-      });
+      var list = template.list(topics);
+      var html = template.HTML(sanitizeHtml(topic[0].title), list,
+        `
+        <form action="/topic/update_process" method="post">
+          <input type="hidden" name="id" value="${topic[0].id}">
+          <p><input type="text" name="title" placeholder="title" value="${sanitizeHtml(topic[0].title)}"></p>
+          <p>
+            <textarea name="description" placeholder="description">${sanitizeHtml(topic[0].description)}</textarea>
+          </p>
+          <p>
+            <input type="submit">
+          </p>
+        </form>
+        `,
+        `<a href="/create">create</a>`,
+        auth.statusUI(request, response)
+      );
+      response.send(html);
     });
   });
 });
@@ -111,13 +98,22 @@ router.post('/update_process', function(request, response){
     var id = post.id;
     var title = post.title;
     var description = post.description;
-    var author = post.author;
+    var count = request.user.count; // 로그인한 사람의 아이디
     
-    db.query(`UPDATE topic SET title=?, description=?, author_id=? WHERE id=?`,
-    [title, description, author, id],
-    function(error, result){
+    db.query(`SELECT * FROM topic left join auth on count=user_id WHERE topic.title=?`,
+    [title], function(error, topic){
       if(error) throw error;
-      response.redirect(`/topic/${id}`);
+      if(count !== topic[0].user_id){
+        request.flash('error', 'You cannot edit it!');
+        return response.redirect('/');
+      } else{
+          db.query(`UPDATE topic SET title=?, description=? WHERE id=?`,
+          [title, description, id],
+          function(error, result){
+            if(error) throw error;
+            response.redirect(`/topic/${id}`);
+          });
+      }
     });
 });
 
@@ -129,11 +125,21 @@ router.post('/delete_process', function(request,response){
     }
     var post = request.body;
     var id = post.id;
-    db.query(`DELETE FROM topic WHERE id=?`, [id], function(error, result){
-      if(error){
-        throw error;
+    var count = request.user.count; // 로그인 한 사용자
+    db.query(`SELECT * FROM topic left join auth on count=user_id WHERE topic.id=?`,
+    [id], function(error, topic){
+      if(error) throw error;
+      if(count !== topic[0].user_id){
+        request.flash('error', 'You cannot delete it!');
+        return response.redirect('/');
+      } else{
+          db.query(`DELETE FROM topic WHERE id=?`, [id], function(error, result){
+            if(error){
+              throw error;
+            }
+            response.redirect('/');
+          });
       }
-      response.redirect('/');
     });
 });
 
@@ -141,16 +147,17 @@ router.post('/delete_process', function(request,response){
 router.get('/:pageId', function(request, response){
     db.query(`SELECT * FROM topic`, function(error, topics){
       if(error) throw error;
-      db.query(`SELECT * FROM topic left join author on topic.author_id=author.id WHERE topic.id=?`,
+      db.query(`SELECT * FROM topic left join auth on user_id=count WHERE topic.id=?`,
       [request.params.pageId], function(error2, topic){
         if(error2) throw error2;
         var title = topic[0].title;
         var description = topic[0].description;
+        var nickname = topic[0].nickname;
         var list = template.list(topics);
         var html = template.HTML(title, list,
           `<h2>${sanitizeHtml(title)}</h2>
           ${sanitizeHtml(description)}
-          <p>by ${sanitizeHtml(topic[0].name)}</p>`,
+          <p>by ${nickname}</p>`,
           `
           <a href="/topic/create">create</a>
           <a href="/topic/update/${request.params.pageId}">update</a>

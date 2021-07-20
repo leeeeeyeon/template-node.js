@@ -27,13 +27,11 @@ const passport = require('./lib/passport.js')(app);
 // 라우팅 불러오기
 const homeRouter = require('./routes/home.js');
 const topicRouter = require('./routes/topic.js');
-const authorRouter = require('./routes/author.js');
 const authRouter = require('./routes/auth.js')(passport);
 
 // 라우팅 사용
 app.use('/', homeRouter);
 app.use('/topic', topicRouter);
-app.use('/author', authorRouter);
 app.use('/auth', authRouter);
 
 // 오류 처리
