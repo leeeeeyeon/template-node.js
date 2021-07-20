@@ -47,8 +47,8 @@ router.post('/create_process', function(request, response){
     var description = post.description;
     
     db.query(`
-      INSERT INTO topic (title, description, created, user_id)
-        VALUES(?, ?, NOW(), ?)`,
+      INSERT INTO topic (title, description, user_id)
+        VALUES(?, ?, ?)`,
         [title, description, request.user.count],
         function(error, result){
           if(error) throw error;
