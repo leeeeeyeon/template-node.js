@@ -28,11 +28,13 @@ const passport = require('./lib/passport.js')(app);
 const homeRouter = require('./routes/home.js');
 const topicRouter = require('./routes/topic.js');
 const authRouter = require('./routes/auth.js')(passport);
+const searchRouter = require('./routes/search.js');
 
 // 라우팅 사용
 app.use('/', homeRouter);
 app.use('/topic', topicRouter);
 app.use('/auth', authRouter);
+app.use('/search', searchRouter);
 
 // 오류 처리
 app.use(function(req, res, next){
@@ -44,7 +46,7 @@ app.use(function(err, req, res, next){
     res.status(500).send('500 - Something broke!');
 });
 
-// app.listen(3000);
+app.listen(3000);
 
-const PORT = process.env.PORT;
-app.listen(PORT);
+// const PORT = process.env.PORT;
+// app.listen(PORT);
