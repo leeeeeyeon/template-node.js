@@ -46,7 +46,7 @@ app.use(function(err, req, res, next){
     res.status(500).send('500 - Something broke!');
 });
 
-// app.listen(3000);
+app.listen(3000);
 
-const PORT = process.env.PORT;
-app.listen(PORT);
+// const PORT = process.env.PORT;
+// app.listen(PORT);
